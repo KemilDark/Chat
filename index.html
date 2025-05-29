@@ -8,7 +8,7 @@
     body {
       margin: 0;
       font-family: 'Segoe UI', sans-serif;
-      background: #f0f2f5;
+      background: linear-gradient(to bottom, #e0e7ff, #f0f2f5);
       display: flex;
       justify-content: center;
       align-items: center;
@@ -16,11 +16,11 @@
     }
     #chat, #loginContainer {
       width: 100%;
-      max-width: 500px;
+      max-width: 600px;
       background: white;
-      box-shadow: 0 0 15px rgba(0,0,0,0.1);
-      border-radius: 10px;
-      padding: 15px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      border-radius: 12px;
+      padding: 20px;
       display: flex;
       flex-direction: column;
     }
@@ -29,46 +29,54 @@
     }
     #usernameInput {
       width: 100%;
-      padding: 10px;
-      border-radius: 5px;
+      padding: 12px;
+      border-radius: 8px;
       border: 1px solid #ccc;
-      margin-bottom: 10px;
+      margin-bottom: 15px;
+      font-size: 1em;
     }
     #loginBtn {
-      padding: 10px;
+      padding: 12px;
       border: none;
       background: #28a745;
       color: white;
-      border-radius: 5px;
+      border-radius: 8px;
       cursor: pointer;
       font-size: 1em;
+      transition: background 0.3s;
     }
     #loginBtn:hover {
       background: #218838;
     }
     #chat {
-      display: none; /* Varsayılan olarak gizli */
+      display: none;
     }
     #messages {
       flex: 1;
       overflow-y: auto;
-      max-height: 400px;
-      padding: 10px;
+      max-height: 500px;
+      padding: 15px;
       border: 1px solid #ddd;
-      border-radius: 5px;
-      margin-bottom: 10px;
-      background: #fafafa;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      background: #f9f9f9;
     }
     .msg {
-      margin-bottom: 8px;
-      padding: 8px 12px;
-      border-radius: 8px;
-      max-width: 80%;
+      margin-bottom: 12px;
+      padding: 10px 15px;
+      border-radius: 12px;
+      max-width: 75%;
       clear: both;
       word-wrap: break-word;
+      position: relative;
+      animation: fadeIn 0.3s ease-in;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
     .own {
-      background-color: #dcf8c6;
+      background-color: #d1f0c6;
       margin-left: auto;
       text-align: right;
     }
@@ -77,25 +85,55 @@
       margin-right: auto;
       text-align: left;
     }
+    .msg:hover .deleteBtn {
+      display: block;
+    }
+    .deleteBtn {
+      display: none;
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background: #ff4d4f;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+      font-size: 0.8em;
+      line-height: 20px;
+      text-align: center;
+    }
+    .avatar {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
     .timestamp {
       font-size: 0.8em;
       color: #666;
-      margin-top: 4px;
+      margin-top: 5px;
     }
     #messageInput {
       width: 70%;
-      padding: 10px;
+      padding: 12px;
       border: 1px solid #ccc;
-      border-radius: 5px;
+      border-radius: 8px;
+      font-size: 1em;
     }
     #sendBtn {
       width: 28%;
-      padding: 10px;
+      padding: 12px;
       border: none;
       background: #007bff;
       color: white;
-      border-radius: 5px;
+      border-radius: 8px;
       cursor: pointer;
+      font-size: 1em;
+      transition: background 0.3s;
     }
     #sendBtn:hover {
       background: #0056b3;
@@ -108,7 +146,39 @@
       font-size: 0.9em;
       color: #555;
       text-align: center;
-      margin-bottom: 10px;
+      margin-bottom: 15px;
+    }
+    #userList {
+      margin-bottom: 15px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #f0f0f0;
+      max-height: 100px;
+      overflow-y: auto;
+    }
+    #userList h4 {
+      margin: 0 0 10px;
+      font-size: 1em;
+    }
+    .user {
+      font-size: 0.9em;
+      color: #333;
+      margin: 5px 0;
+    }
+    #logoutBtn {
+      padding: 10px;
+      border: none;
+      background: #ff4d4f;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9em;
+      margin-top: 10px;
+      transition: background 0.3s;
+    }
+    #logoutBtn:hover {
+      background: #cc0000;
     }
   </style>
 </head>
@@ -122,11 +192,16 @@
   <div id="chat">
     <h2 style="text-align:center">📱 Sohbet Odası</h2>
     <div id="status"></div>
+    <div id="userList">
+      <h4>Çevrimiçi Kullanıcılar</h4>
+      <div id="userListContent"></div>
+    </div>
     <div id="messages"></div>
     <div id="inputContainer">
       <input type="text" id="messageInput" placeholder="Mesaj yaz..." onkeypress="if(event.key === 'Enter') sendMessage()" />
       <button id="sendBtn" onclick="sendMessage()">Gönder</button>
     </div>
+    <button id="logoutBtn" onclick="logout()">Çıkış Yap</button>
   </div>
 
   <!-- Firebase SDK -->
@@ -139,22 +214,32 @@
   <script>
     // Firebase yapılandırması (Kendi bilgilerinizi ekleyin)
     const firebaseConfig = {
-      apiKey: "AIzaSyBOf2SyzU_ImGw9_3c6xDYRZtJqOA8is1o",
-  authDomain: "chat-61717.firebaseapp.com",
-  databaseURL: "https://chat-61717-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "chat-61717",
-  storageBucket: "chat-61717.firebasestorage.app",
-  messagingSenderId: "520939803619",
-  appId: "1:520939803619:web:c6e68b3a5847e55b5a06d6",
-  measurementId: "G-MZHQ042SG8"
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
     };
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     const messagesRef = db.ref("messages");
+    const usersRef = db.ref("users");
 
     let userId = "";
     let username = localStorage.getItem("username") || "";
+
+    // Rastgele renk oluşturma (avatar için)
+    function getRandomColor(username) {
+      let hash = 0;
+      for (let i = 0; i < username.length; i++) {
+        hash = username.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+      return "#" + "00000".substring(0, 6 - c.length) + c;
+    }
 
     // Eğer kullanıcı adı varsa, doğrudan sohbet ekranını göster
     if (username) {
@@ -167,7 +252,9 @@
     firebase.auth().signInAnonymously()
       .then(user => {
         userId = user.user.uid;
-        if (!username) {
+        if (username) {
+          updateUserStatus();
+        } else {
           document.getElementById("status").textContent = "Lütfen bir kullanıcı adı gir.";
         }
       })
@@ -175,6 +262,15 @@
         document.getElementById("status").textContent = "Bağlantı hatası: " + error.message;
         console.error(error);
       });
+
+    // Kullanıcı durumunu güncelle
+    function updateUserStatus() {
+      usersRef.child(userId).set({
+        name: username,
+        lastActive: Date.now()
+      });
+      usersRef.child(userId).onDisconnect().remove();
+    }
 
     // Giriş fonksiyonu
     function login() {
@@ -188,6 +284,18 @@
       document.getElementById("loginContainer").style.display = "none";
       document.getElementById("chat").style.display = "flex";
       document.getElementById("status").textContent = `Hoş geldin, ${username}!`;
+      updateUserStatus();
+    }
+
+    // Çıkış fonksiyonu
+    function logout() {
+      localStorage.removeItem("username");
+      usersRef.child(userId).remove();
+      username = "";
+      document.getElementById("chat").style.display = "none";
+      document.getElementById("loginContainer").style.display = "flex";
+      document.getElementById("usernameInput").value = "";
+      document.getElementById("status").textContent = "Lütfen bir kullanıcı adı gir.";
     }
 
     // Mesaj gönder
@@ -222,9 +330,39 @@
       const msg = snapshot.val();
       const div = document.createElement("div");
       div.className = "msg " + (msg.user === userId ? "own" : "other");
-      div.innerHTML = `<strong>${DOMPurify.sanitize(msg.name || "Anonim")}:</strong> ${DOMPurify.sanitize(msg.text)}<div class="timestamp">${new Date(msg.timestamp).toLocaleTimeString()}</div>`;
+      const avatarColor = getRandomColor(msg.name || "Anonim");
+      div.innerHTML = `
+        <span class="avatar" style="background-color: ${avatarColor};"></span>
+        <strong>${DOMPurify.sanitize(msg.name || "Anonim")}:</strong> ${DOMPurify.sanitize(msg.text)}
+        <div class="timestamp">${new Date(msg.timestamp).toLocaleTimeString()}</div>
+        ${msg.user === userId ? `<button class="deleteBtn" onclick="deleteMessage('${snapshot.key}')">X</button>` : ""}
+      `;
       document.getElementById("messages").appendChild(div);
       div.scrollIntoView({ behavior: "smooth" });
+    });
+
+    // Mesaj sil
+    function deleteMessage(messageId) {
+      messagesRef.child(messageId).remove().catch(error => {
+        document.getElementById("status").textContent = "Mesaj silinemedi: " + error.message;
+        console.error(error);
+      });
+    }
+
+    // Çevrimiçi kullanıcıları dinle
+    usersRef.on("value", snapshot => {
+      const users = snapshot.val();
+      const userListContent = document.getElementById("userListContent");
+      userListContent.innerHTML = "";
+      if (users) {
+        Object.values(users).forEach(user => {
+          const userDiv = document.createElement("div");
+          userDiv.className = "user";
+          const avatarColor = getRandomColor(user.name);
+          userDiv.innerHTML = `<span class="avatar" style="background-color: ${avatarColor};"></span>${DOMPurify.sanitize(user.name)}`;
+          userListContent.appendChild(userDiv);
+        });
+      }
     });
 
     // Çevrimiçi durumu dinle
