@@ -14,7 +14,7 @@
       align-items: center;
       min-height: 100vh;
     }
-    #chat {
+    #chat, #loginContainer {
       width: 100%;
       max-width: 500px;
       background: white;
@@ -24,9 +24,8 @@
       display: flex;
       flex-direction: column;
     }
-    #usernameContainer {
-      margin-bottom: 10px;
-      display: none; /* Kullanıcı adı girildikten sonra gizlenir */
+    #loginContainer {
+      text-align: center;
     }
     #usernameInput {
       width: 100%;
@@ -35,10 +34,25 @@
       border: 1px solid #ccc;
       margin-bottom: 10px;
     }
+    #loginBtn {
+      padding: 10px;
+      border: none;
+      background: #28a745;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1em;
+    }
+    #loginBtn:hover {
+      background: #218838;
+    }
+    #chat {
+      display: none; /* Varsayılan olarak gizli */
+    }
     #messages {
       flex: 1;
       overflow-y: auto;
-      max-height: 400px; /* Daha fazla mesaj için artırıldı */
+      max-height: 400px;
       padding: 10px;
       border: 1px solid #ddd;
       border-radius: 5px;
@@ -99,13 +113,15 @@
   </style>
 </head>
 <body>
+  <div id="loginContainer">
+    <h2 style="text-align:center">📱 Sohbete Katıl</h2>
+    <div id="status"></div>
+    <input type="text" id="usernameInput" placeholder="Kullanıcı adını gir..." onkeypress="if(event.key === 'Enter') login()" />
+    <button id="loginBtn" onclick="login()">Giriş Yap</button>
+  </div>
   <div id="chat">
     <h2 style="text-align:center">📱 Sohbet Odası</h2>
     <div id="status"></div>
-    <div id="usernameContainer">
-      <input type="text" id="usernameInput" placeholder="Kullanıcı adını gir..." />
-      <button onclick="saveUsername()">Kaydet</button>
-    </div>
     <div id="messages"></div>
     <div id="inputContainer">
       <input type="text" id="messageInput" placeholder="Mesaj yaz..." onkeypress="if(event.key === 'Enter') sendMessage()" />
@@ -121,7 +137,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.0/purify.min.js"></script>
 
   <script>
-    // Firebase yapılandırması
+    // Firebase yapılandırması (Kendi bilgilerinizi ekleyin)
     const firebaseConfig = {
       apiKey: "AIzaSyBOf2SyzU_ImGw9_3c6xDYRZtJqOA8is1o",
   authDomain: "chat-61717.firebaseapp.com",
@@ -140,9 +156,10 @@
     let userId = "";
     let username = localStorage.getItem("username") || "";
 
-    // Kullanıcı adı kontrolü ve arayüz güncelleme
+    // Eğer kullanıcı adı varsa, doğrudan sohbet ekranını göster
     if (username) {
-      document.getElementById("usernameContainer").style.display = "none";
+      document.getElementById("loginContainer").style.display = "none";
+      document.getElementById("chat").style.display = "flex";
       document.getElementById("status").textContent = `Hoş geldin, ${username}!`;
     }
 
@@ -150,22 +167,26 @@
     firebase.auth().signInAnonymously()
       .then(user => {
         userId = user.user.uid;
-        document.getElementById("status").textContent = username ? `Hoş geldin, ${username}!` : "Kullanıcı adı seçiniz.";
+        if (!username) {
+          document.getElementById("status").textContent = "Lütfen bir kullanıcı adı gir.";
+        }
       })
       .catch(error => {
         document.getElementById("status").textContent = "Bağlantı hatası: " + error.message;
+        console.error(error);
       });
 
-    // Kullanıcı adını kaydet
-    function saveUsername() {
+    // Giriş fonksiyonu
+    function login() {
       const nameInput = document.getElementById("usernameInput");
       username = DOMPurify.sanitize(nameInput.value.trim());
       if (!username) {
-        alert("Lütfen bir kullanıcı adı gir.");
+        document.getElementById("status").textContent = "Lütfen bir kullanıcı adı gir.";
         return;
       }
       localStorage.setItem("username", username);
-      document.getElementById("usernameContainer").style.display = "none";
+      document.getElementById("loginContainer").style.display = "none";
+      document.getElementById("chat").style.display = "flex";
       document.getElementById("status").textContent = `Hoş geldin, ${username}!`;
     }
 
@@ -175,7 +196,7 @@
       const text = DOMPurify.sanitize(input.value.trim());
 
       if (!username) {
-        alert("Lütfen önce bir kullanıcı adı gir.");
+        document.getElementById("status").textContent = "Lütfen önce bir kullanıcı adı gir.";
         return;
       }
 
@@ -192,6 +213,7 @@
         input.value = "";
       }).catch(error => {
         document.getElementById("status").textContent = "Mesaj gönderilemedi: " + error.message;
+        console.error(error);
       });
     }
 
@@ -202,13 +224,13 @@
       div.className = "msg " + (msg.user === userId ? "own" : "other");
       div.innerHTML = `<strong>${DOMPurify.sanitize(msg.name || "Anonim")}:</strong> ${DOMPurify.sanitize(msg.text)}<div class="timestamp">${new Date(msg.timestamp).toLocaleTimeString()}</div>`;
       document.getElementById("messages").appendChild(div);
-      div.scrollIntoView({ behavior: 'smooth' });
+      div.scrollIntoView({ behavior: "smooth" });
     });
 
     // Çevrimiçi durumu dinle
     db.ref(".info/connected").on("value", snapshot => {
       if (snapshot.val()) {
-        document.getElementById("status").textContent = username ? `Hoş geldin, ${username}!` : "Kullanıcı adı seçiniz.";
+        document.getElementById("status").textContent = username ? `Hoş geldin, ${username}!` : "Lütfen bir kullanıcı adı gir.";
       } else {
         document.getElementById("status").textContent = "Çevrimdışı. Bağlantı sağlanıyor...";
       }
