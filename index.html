@@ -1,66 +1,24 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Canlı Sohbet</title>
+  <title>Gerçek Zamanlı Chat</title>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f2f2f2;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-    .chat-container {
-      background: white;
-      width: 350px;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-    #messages {
-      height: 300px;
-      overflow-y: auto;
-      border: 1px solid #ccc;
-      padding: 10px;
-      margin-bottom: 10px;
-      font-size: 14px;
-    }
-    #messageInput {
-      width: calc(100% - 60px);
-      padding: 8px;
-    }
-    #sendBtn {
-      width: 50px;
-      padding: 8px;
-      background: #007bff;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-    .message {
-      margin-bottom: 5px;
-    }
+    body { font-family: Arial; max-width: 500px; margin: auto; }
+    ul { list-style-type: none; padding: 0; }
+    li { background: #f0f0f0; margin: 5px 0; padding: 10px; border-radius: 5px; }
+    input, button { padding: 10px; margin-top: 10px; width: 100%; }
   </style>
 </head>
 <body>
-  <div class="chat-container">
-    <h3>Canlı Sohbet</h3>
-    <div id="messages"></div>
-    <div style="display: flex;">
-      <input type="text" id="messageInput" placeholder="Mesaj yaz..." />
-      <button id="sendBtn">➤</button>
-    </div>
-  </div>
+  <h2>Chat Odası</h2>
+  <input type="text" id="messageInput" placeholder="Mesaj yaz..." />
+  <button onclick="sendMessage()">Gönder</button>
+  <ul id="messages"></ul>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-
-    // Firebase ayarlarını BURAYA gir
+  <script>
+    // 🔧 BURAYI KENDİ BİLGİLERİNLE DOLDUR
     const firebaseConfig = {
        apiKey: "AIzaSyC0hI558Mvcb3rmeGFRyNY4LPnhdytX0M4",
   authDomain: "chat-ca287.firebaseapp.com",
@@ -71,38 +29,23 @@
   measurementId: "G-FH4P16D3GE"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    const auth = getAuth(app);
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-    // Anonim giriş
-    signInAnonymously(auth).catch(err => console.error("Giriş hatası:", err));
-
-    const messageInput = document.getElementById("messageInput");
-    const sendBtn = document.getElementById("sendBtn");
-    const messagesDiv = document.getElementById("messages");
-
-    // Mesaj gönderme
-    sendBtn.onclick = () => {
-      const text = messageInput.value.trim();
-      if (text !== "") {
-        const msg = {
-          text: text,
-          timestamp: Date.now()
-        };
-        push(ref(db, "messages"), msg);
-        messageInput.value = "";
+    function sendMessage() {
+      const msgInput = document.getElementById("messageInput");
+      const msg = msgInput.value.trim();
+      if (msg !== "") {
+        db.ref("messages").push({ text: msg, time: Date.now() });
+        msgInput.value = "";
       }
-    };
+    }
 
-    // Mesajları dinleme
-    onChildAdded(ref(db, "messages"), (data) => {
-      const message = data.val();
-      const p = document.createElement("p");
-      p.className = "message";
-      p.textContent = message.text;
-      messagesDiv.appendChild(p);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    db.ref("messages").on("child_added", (snapshot) => {
+      const data = snapshot.val();
+      const li = document.createElement("li");
+      li.textContent = data.text;
+      document.getElementById("messages").appendChild(li);
     });
   </script>
 </body>
