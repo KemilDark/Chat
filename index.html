@@ -1,23 +1,106 @@
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <title>Firebase Chat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chat Uygulaması</title>
   <style>
-    body { font-family: sans-serif; background: #f5f5f5; padding: 20px; }
-    #chat { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
-    #messages { max-height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }
-    .msg { padding: 5px; border-bottom: 1px solid #eee; }
-    .msg span { font-size: 0.9em; color: #666; }
-    input, button { padding: 10px; font-size: 1em; width: 80%; margin-right: 5px; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    #chat {
+      width: 100%;
+      max-width: 500px;
+      background: white;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      border-radius: 10px;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+    }
+    #usernameContainer {
+      margin-bottom: 10px;
+    }
+    #usernameInput {
+      width: 100%;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      margin-bottom: 10px;
+    }
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      max-height: 300px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      margin-bottom: 10px;
+      background: #fafafa;
+    }
+    .msg {
+      margin-bottom: 8px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      max-width: 80%;
+      clear: both;
+    }
+    .own {
+      background-color: #dcf8c6;
+      margin-left: auto;
+      text-align: right;
+    }
+    .other {
+      background-color: #e5e5ea;
+      margin-right: auto;
+      text-align: left;
+    }
+    .timestamp {
+      font-size: 0.8em;
+      color: #666;
+      margin-top: 4px;
+    }
+    #messageInput {
+      width: 70%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    #sendBtn {
+      width: 28%;
+      padding: 10px;
+      border: none;
+      background: #007bff;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #sendBtn:hover {
+      background: #0056b3;
+    }
+    #inputContainer {
+      display: flex;
+      gap: 2%;
+    }
   </style>
 </head>
 <body>
   <div id="chat">
-    <h2>Firebase Chat</h2>
+    <h2 style="text-align:center">📱 Sohbet Odası</h2>
+    <div id="usernameContainer">
+      <input type="text" id="usernameInput" placeholder="Kullanıcı adını gir..." />
+    </div>
     <div id="messages"></div>
-    <input type="text" id="messageInput" placeholder="Mesaj yaz..." />
-    <button onclick="sendMessage()">Gönder</button>
+    <div id="inputContainer">
+      <input type="text" id="messageInput" placeholder="Mesaj yaz..." />
+      <button id="sendBtn" onclick="sendMessage()">Gönder</button>
+    </div>
   </div>
 
   <!-- Firebase SDK -->
@@ -26,7 +109,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
 
   <script>
-    // 🔧 Firebase ayarlarını buraya yapıştır
+    // 🔧 Firebase yapılandırmanı buraya yapıştır:
     const firebaseConfig = {
       apiKey: "SENIN_API_KEY",
       authDomain: "SENIN_PROJE.firebaseapp.com",
@@ -37,30 +120,41 @@
       appId: "APP_ID"
     };
 
-    // Firebase başlat
     firebase.initializeApp(firebaseConfig);
-
     const db = firebase.database();
     const messagesRef = db.ref("messages");
-    let userId = "";
 
-    // Anonim giriş yap
+    let userId = "";
+    let username = "";
+
+    // Giriş
     firebase.auth().signInAnonymously()
       .then(user => {
         userId = user.user.uid;
       })
       .catch(error => {
-        alert("Giriş başarısız: " + error.message);
+        alert("Giriş hatası: " + error.message);
       });
 
     // Mesaj gönder
     function sendMessage() {
       const input = document.getElementById("messageInput");
+      const nameInput = document.getElementById("usernameInput");
       const text = input.value.trim();
+      const name = nameInput.value.trim();
+
+      if (!name) {
+        alert("Lütfen bir kullanıcı adı gir.");
+        return;
+      }
+
       if (text === "") return;
+
+      username = name;
 
       const msg = {
         user: userId,
+        name: username,
         text: text,
         timestamp: Date.now()
       };
@@ -73,10 +167,10 @@
     messagesRef.orderByChild("timestamp").on("child_added", snapshot => {
       const msg = snapshot.val();
       const div = document.createElement("div");
-      div.className = "msg";
-      div.innerHTML = `<strong>${msg.user === userId ? "Ben" : "Anonim"}:</strong> ${msg.text} <br><span>${new Date(msg.timestamp).toLocaleTimeString()}</span>`;
+      div.className = "msg " + (msg.user === userId ? "own" : "other");
+      div.innerHTML = `<strong>${msg.name || "Anonim"}:</strong> ${msg.text}<div class="timestamp">${new Date(msg.timestamp).toLocaleTimeString()}</div>`;
       document.getElementById("messages").appendChild(div);
-      div.scrollIntoView();
+      div.scrollIntoView({ behavior: 'smooth' });
     });
   </script>
 </body>
