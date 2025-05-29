@@ -70,6 +70,7 @@
       word-wrap: break-word;
       position: relative;
       animation: fadeIn 0.3s ease-in;
+      cursor: pointer;
     }
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(10px); }
@@ -166,6 +167,11 @@
       color: #333;
       margin: 5px 0;
     }
+    .typing {
+      font-size: 0.8em;
+      color: #888;
+      margin-left: 5px;
+    }
     #logoutBtn {
       padding: 10px;
       border: none;
@@ -198,7 +204,7 @@
     </div>
     <div id="messages"></div>
     <div id="inputContainer">
-      <input type="text" id="messageInput" placeholder="Mesaj yaz..." onkeypress="if(event.key === 'Enter') sendMessage()" />
+      <input type="text" id="messageInput" placeholder="Mesaj yaz..." onkeypress="if(event.key === 'Enter') sendMessage()" oninput="updateTypingStatus()" />
       <button id="sendBtn" onclick="sendMessage()">Gönder</button>
     </div>
     <button id="logoutBtn" onclick="logout()">Çıkış Yap</button>
@@ -214,23 +220,34 @@
   <script>
     // Firebase yapılandırması (Kendi bilgilerinizi ekleyin)
     const firebaseConfig = {
-      apiKey: "AIzaSyBOf2SyzU_ImGw9_3c6xDYRZtJqOA8is1o",
-  authDomain: "chat-61717.firebaseapp.com",
-  databaseURL: "https://chat-61717-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "chat-61717",
-  storageBucket: "chat-61717.firebasestorage.app",
-  messagingSenderId: "520939803619",
-  appId: "1:520939803619:web:c6e68b3a5847e55b5a06d6",
-  measurementId: "G-MZHQ042SG8"
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
     };
 
-    firebase.initializeApp(firebaseConfig);
+    try {
+      firebase.initializeApp(firebaseConfig);
+    } catch (error) {
+      document.getElementById("status").textContent = `Firebase başlatılamadı: ${error.message}`;
+      console.error(error);
+    }
+
     const db = firebase.database();
     const messagesRef = db.ref("messages");
     const usersRef = db.ref("users");
 
     let userId = "";
     let username = localStorage.getItem("username") || "";
+    let isTyping = false;
+
+    // Bildirim izni isteme
+    if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+      Notification.requestPermission();
+    }
 
     // Rastgele renk oluşturma (avatar için)
     function getRandomColor(username) {
@@ -260,7 +277,7 @@
         }
       })
       .catch(error => {
-        document.getElementById("status").textContent = "Bağlantı hatası: " + error.message;
+        document.getElementById("status").textContent = `Bağlantı hatası: ${error.message}`;
         console.error(error);
       });
 
@@ -268,9 +285,20 @@
     function updateUserStatus() {
       usersRef.child(userId).set({
         name: username,
-        lastActive: Date.now()
+        lastActive: Date.now(),
+        isTyping: isTyping
+      }).catch(error => {
+        document.getElementById("status").textContent = `Kullanıcı durumu güncellenemedi: ${error.message}`;
+        console.error(error);
       });
       usersRef.child(userId).onDisconnect().remove();
+    }
+
+    // Yazıyor durumunu güncelle
+    function updateTypingStatus() {
+      const input = document.getElementById("messageInput");
+      isTyping = input.value.trim() !== "";
+      updateUserStatus();
     }
 
     // Giriş fonksiyonu
@@ -320,14 +348,17 @@
 
       messagesRef.push(msg).then(() => {
         input.value = "";
+        isTyping = false;
+        updateUserStatus();
+        document.getElementById("status").textContent = `Hoş geldin, ${username}!`;
       }).catch(error => {
-        document.getElementById("status").textContent = "Mesaj gönderilemedi: " + error.message;
+        document.getElementById("status").textContent = `Mesaj gönderilemedi: ${error.message}`;
         console.error(error);
       });
     }
 
-    // Mesajları dinle (son 50 mesaj)
-    messagesRef.orderByChild("timestamp").limitToLast(50).on("child_added", snapshot => {
+    // Mesajları dinle (son 100 mesaj)
+    messagesRef.orderByChild("timestamp").limitToLast(100).on("child_added", snapshot => {
       const msg = snapshot.val();
       const div = document.createElement("div");
       div.className = "msg " + (msg.user === userId ? "own" : "other");
@@ -338,14 +369,28 @@
         <div class="timestamp">${new Date(msg.timestamp).toLocaleTimeString()}</div>
         ${msg.user === userId ? `<button class="deleteBtn" onclick="deleteMessage('${snapshot.key}')">X</button>` : ""}
       `;
+      div.onclick = () => {
+        navigator.clipboard.writeText(msg.text);
+        document.getElementById("status").textContent = "Mesaj kopyalandı!";
+        setTimeout(() => {
+          document.getElementById("status").textContent = `Hoş geldin, ${username}!`;
+        }, 2000);
+      };
       document.getElementById("messages").appendChild(div);
       div.scrollIntoView({ behavior: "smooth" });
+      // Bildirim gönder
+      if (Notification.permission === "granted" && msg.user !== userId) {
+        new Notification("Yeni Mesaj!", { body: `${msg.name}: ${msg.text}` });
+      }
+    }, error => {
+      document.getElementById("status").textContent = `Mesajlar yüklenemedi: ${error.message}`;
+      console.error(error);
     });
 
     // Mesaj sil
     function deleteMessage(messageId) {
       messagesRef.child(messageId).remove().catch(error => {
-        document.getElementById("status").textContent = "Mesaj silinemedi: " + error.message;
+        document.getElementById("status").textContent = `Mesaj silinemedi: ${error.message}`;
         console.error(error);
       });
     }
@@ -360,10 +405,17 @@
           const userDiv = document.createElement("div");
           userDiv.className = "user";
           const avatarColor = getRandomColor(user.name);
-          userDiv.innerHTML = `<span class="avatar" style="background-color: ${avatarColor};"></span>${DOMPurify.sanitize(user.name)}`;
+          userDiv.innerHTML = `
+            <span class="avatar" style="background-color: ${avatarColor};"></span>
+            ${DOMPurify.sanitize(user.name)}
+            ${user.isTyping ? '<span class="typing">(yazıyor...)</span>' : ''}
+          `;
           userListContent.appendChild(userDiv);
         });
       }
+    }, error => {
+      document.getElementById("status").textContent = `Kullanıcı listesi yüklenemedi: ${error.message}`;
+      console.error(error);
     });
 
     // Çevrimiçi durumu dinle
@@ -373,6 +425,9 @@
       } else {
         document.getElementById("status").textContent = "Çevrimdışı. Bağlantı sağlanıyor...";
       }
+    }, error => {
+      document.getElementById("status").textContent = `Bağlantı durumu alınamadı: ${error.message}`;
+      console.error(error);
     });
   </script>
 </body>
