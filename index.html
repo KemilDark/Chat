@@ -1,479 +1,109 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Chat Uygulaması</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Canlı Sohbet</title>
   <style>
     body {
-      margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(to bottom, #e0e7ff, #f0f2f5);
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
       display: flex;
       justify-content: center;
       align-items: center;
-      min-height: 100vh;
+      height: 100vh;
     }
-    #chat, #loginContainer {
-      width: 100%;
-      max-width: 600px;
+    .chat-container {
       background: white;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-      border-radius: 12px;
+      width: 350px;
       padding: 20px;
-      display: flex;
-      flex-direction: column;
-    }
-    #loginContainer {
-      text-align: center;
-    }
-    #usernameInput {
-      width: 100%;
-      padding: 12px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      margin-bottom: 15px;
-      font-size: 1em;
-    }
-    #loginBtn {
-      padding: 12px;
-      border: none;
-      background: #28a745;
-      color: white;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1em;
-      transition: background 0.3s;
-    }
-    #loginBtn:hover {
-      background: #218838;
-    }
-    #chat {
-      display: none;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
     #messages {
-      flex: 1;
+      height: 300px;
       overflow-y: auto;
-      max-height: 500px;
-      padding: 15px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      margin-bottom: 15px;
-      background: #f9f9f9;
-    }
-    .msg {
-      margin-bottom: 12px;
-      padding: 10px 15px;
-      border-radius: 12px;
-      max-width: 75%;
-      clear: both;
-      word-wrap: break-word;
-      position: relative;
-      animation: fadeIn 0.3s ease-in;
-      cursor: pointer;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .own {
-      background-color: #d1f0c6;
-      margin-left: auto;
-      text-align: right;
-    }
-    .other {
-      background-color: #e5e5ea;
-      margin-right: auto;
-      text-align: left;
-    }
-    .msg:hover .deleteBtn {
-      display: block;
-    }
-    .deleteBtn {
-      display: none;
-      position: absolute;
-      top: 5px;
-      right: 5px;
-      background: #ff4d4f;
-      color: white;
-      border: none;
-      border-radius: 50%;
-      width: 20px;
-      height: 20px;
-      cursor: pointer;
-      font-size: 0.8em;
-      line-height: 20px;
-      text-align: center;
-    }
-    .avatar {
-      display: inline-block;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      margin-right: 8px;
-      vertical-align: middle;
-    }
-    .timestamp {
-      font-size: 0.8em;
-      color: #666;
-      margin-top: 5px;
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-bottom: 10px;
+      font-size: 14px;
     }
     #messageInput {
-      width: 70%;
-      padding: 12px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      font-size: 1em;
+      width: calc(100% - 60px);
+      padding: 8px;
     }
     #sendBtn {
-      width: 28%;
-      padding: 12px;
-      border: none;
+      width: 50px;
+      padding: 8px;
       background: #007bff;
       color: white;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1em;
-      transition: background 0.3s;
-    }
-    #sendBtn:hover {
-      background: #0056b3;
-    }
-    #inputContainer {
-      display: flex;
-      gap: 2%;
-    }
-    #status {
-      font-size: 0.9em;
-      color: #555;
-      text-align: center;
-      margin-bottom: 15px;
-    }
-    #userList {
-      margin-bottom: 15px;
-      padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      background: #f0f0f0;
-      max-height: 100px;
-      overflow-y: auto;
-    }
-    #userList h4 {
-      margin: 0 0 10px;
-      font-size: 1em;
-    }
-    .user {
-      font-size: 0.9em;
-      color: #333;
-      margin: 5px 0;
-    }
-    .typing {
-      font-size: 0.8em;
-      color: #888;
-      margin-left: 5px;
-    }
-    #logoutBtn {
-      padding: 10px;
       border: none;
-      background: #ff4d4f;
-      color: white;
-      border-radius: 8px;
       cursor: pointer;
-      font-size: 0.9em;
-      margin-top: 10px;
-      transition: background 0.3s;
     }
-    #logoutBtn:hover {
-      background: #cc0000;
-    }
-    @media (max-width: 480px) {
-      #chat, #loginContainer {
-        padding: 10px;
-      }
-      #messageInput, #sendBtn, #usernameInput, #loginBtn {
-        font-size: 0.9em;
-      }
+    .message {
+      margin-bottom: 5px;
     }
   </style>
 </head>
 <body>
-  <div id="loginContainer">
-    <h2 style="text-align:center">📱 Sohbete Katıl</h2>
-    <div id="status"></div>
-    <input type="text" id="usernameInput" placeholder="Kullanıcı adını gir..." onkeypress="if(event.key === 'Enter') login()" />
-    <button id="loginBtn" onclick="login()">Giriş Yap</button>
-  </div>
-  <div id="chat">
-    <h2 style="text-align:center">📱 Sohbet Odası</h2>
-    <div id="status"></div>
-    <div id="userList">
-      <h4>Çevrimiçi Kullanıcılar</h4>
-      <div id="userListContent"></div>
-    </div>
+  <div class="chat-container">
+    <h3>Canlı Sohbet</h3>
     <div id="messages"></div>
-    <div id="inputContainer">
-      <input type="text" id="messageInput" placeholder="Mesaj yaz..." onkeypress="if(event.key === 'Enter') sendMessage()" oninput="updateTypingStatus()" />
-      <button id="sendBtn" onclick="sendMessage()">Gönder</button>
+    <div style="display: flex;">
+      <input type="text" id="messageInput" placeholder="Mesaj yaz..." />
+      <button id="sendBtn">➤</button>
     </div>
-    <button id="logoutBtn" onclick="logout()">Çıkış Yap</button>
   </div>
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-database-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
-  <!-- DOMPurify for XSS protection -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.0/purify.min.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-  <script>
-    // Firebase yapılandırması (Kendi bilgilerinizi ekleyin)
+    // Firebase ayarlarını BURAYA gir
     const firebaseConfig = {
-      apiKey: "AIzaSyBOf2SyzU_ImGw9_3c6xDYRZtJqOA8is1o",
-  authDomain: "chat-61717.firebaseapp.com",
-  databaseURL: "https://chat-61717-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "chat-61717",
-  storageBucket: "chat-61717.firebasestorage.app",
-  messagingSenderId: "520939803619",
-  appId: "1:520939803619:web:c6e68b3a5847e55b5a06d6",
-  measurementId: "G-MZHQ042SG8"
+      apiKey: "API_KEY",
+      authDomain: "proje-ismi.firebaseapp.com",
+      databaseURL: "https://proje-ismi-default-rtdb.firebaseio.com",
+      projectId: "proje-ismi",
+      storageBucket: "proje-ismi.appspot.com",
+      messagingSenderId: "XXXXXXXXXX",
+      appId: "APP_ID"
     };
 
-    try {
-      firebase.initializeApp(firebaseConfig);
-      document.getElementById("status").textContent = "Firebase başlatıldı.";
-      console.log("Firebase başlatıldı.");
-    } catch (error) {
-      document.getElementById("status").textContent = `Firebase başlatılamadı: ${error.message}`;
-      console.error("Firebase başlatma hatası:", error);
-    }
-
-    const db = firebase.database();
-    const messagesRef = db.ref("messages");
-    const usersRef = db.ref("users");
-
-    let userId = "";
-    let username = localStorage.getItem("username") || "";
-    let isTyping = false;
-
-    // Bildirim izni isteme
-    if (Notification.permission !== "granted" && Notification.permission !== "denied") {
-      Notification.requestPermission();
-    }
-
-    // Rastgele renk oluşturma (avatar için)
-    function getRandomColor(username) {
-      let hash = 0;
-      for (let i = 0; i < username.length; i++) {
-        hash = username.charCodeAt(i) + ((hash << 5) - hash);
-      }
-      const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
-      return "#" + "00000".substring(0, 6 - c.length) + c;
-    }
-
-    // Eğer kullanıcı adı varsa, doğrudan sohbet ekranını göster
-    if (username) {
-      document.getElementById("loginContainer").style.display = "none";
-      document.getElementById("chat").style.display = "flex";
-      document.getElementById("status").textContent = `Hoş geldin, ${username}!`;
-    }
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
 
     // Anonim giriş
-    firebase.auth().signInAnonymously()
-      .then(user => {
-        userId = user.user.uid;
-        console.log("Anonim giriş başarılı, userId:", userId);
-        if (username) {
-          updateUserData();
-        } else {
-          document.getElementById("status").textContent = "Lütfen bir kullanıcı adı gir.";
-        }
-      })
-      .catch(error => {
-        document.getElementById("status").textContent = `Bağlantı hatası: ${error.message}`;
-        console.error("Anonim giriş hatası:", error);
-      });
+    signInAnonymously(auth).catch(err => console.error("Giriş hatası:", err));
 
-    // Kullanıcı durumunu güncelle
-    function updateUserData() {
-      const userData = {
-        name: username,
-        uid: userId,
-        lastActive: Date.now(),
-        isTyping: isTyping
-      };
-      usersRef.child(userId).set(userData).then(() => {
-        console.log("Kullanıcı verisi güncellendi:", userData);
-      }).catch(error => {
-        document.getElementById("status").textContent = `Kullanıcı verisi güncellenemedi: ${error.message}`;
-        console.error("Kullanıcı verisi güncelleme hatası:", error);
-      });
-      usersRef.child(userId).onDisconnect().remove();
-    }
+    const messageInput = document.getElementById("messageInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const messagesDiv = document.getElementById("messages");
 
-    // Yazıyor durumunu güncelle
-    function updateTypingStatus() {
-      const input = document.getElementById("messageInput");
-      isTyping = input.value.trim() !== "";
-      updateUserData();
-    }
-
-    // Giriş fonksiyonu
-    function login() {
-      const nameInput = document.getElementById("usernameInput");
-      username = DOMPurify.sanitize(nameInput.value.trim());
-      if (!username) {
-        document.getElementById("status").textContent = "Lütfen bir kullanıcı adı gir.";
-        return;
+    // Mesaj gönderme
+    sendBtn.onclick = () => {
+      const text = messageInput.value.trim();
+      if (text !== "") {
+        const msg = {
+          text: text,
+          timestamp: Date.now()
+        };
+        push(ref(db, "messages"), msg);
+        messageInput.value = "";
       }
-      localStorage.setItem("username", username);
-      document.getElementById("loginContainer").style.display = "none";
-      document.getElementById("chat").style.display = "flex";
-      document.getElementById("status").textContent = `Hoş geldin, ${username}!`;
-      updateUserData();
-    }
+    };
 
-    // Çıkış fonksiyonu
-    function logout() {
-      localStorage.removeItem("username");
-      usersRef.child(userId).remove().catch(error => {
-        console.error("Çıkış hatası:", error);
-      });
-      username = "";
-      userId = "";
-      document.getElementById("chat").style.display = "none";
-      document.getElementById("loginContainer").style.display = "flex";
-      document.getElementById("usernameInput").value = "";
-      document.getElementById("status").textContent = "Lütfen bir kullanıcı adı gir.";
-    }
-
-    // Mesaj gönder
-    function sendMessage() {
-      const input = document.getElementById("messageInput");
-      const text = DOMPurify.sanitize(input.value.trim());
-
-      if (!username || !userId) {
-        document.getElementById("status").textContent = "Lütfen önce giriş yap.";
-        return;
-      }
-
-      if (text === "") return;
-
-      const msg = {
-        user: username, // Eski kodlarla uyumluluk için
-        uid: userId,
-        name: username,
-        text: text,
-        timestamp: Date.now()
-      };
-
-      messagesRef.push(msg).then(() => {
-        input.value = "";
-        isTyping = false;
-        updateUserData();
-        document.getElementById("status").textContent = `Mesaj gönderildi! Hoş geldin, ${username}!`;
-        console.log("Mesaj gönderildi:", msg);
-      }).catch(error => {
-        document.getElementById("status").textContent = `Mesaj gönderilemedi: ${error.message}`;
-        console.error("Mesaj gönderme hatası:", error);
-      });
-    }
-
-    // Mesajları dinle (son 100 mesaj)
-    messagesRef.orderByChild("timestamp").limitToLast(100).on("child_added", snapshot => {
-      const msg = snapshot.val();
-      console.log("Yeni mesaj alındı:", msg);
-      const div = document.createElement("div");
-      div.className = "msg " + (msg.uid === userId ? "own" : "other");
-      const avatarColor = getRandomColor(msg.name || "Anonim");
-      div.innerHTML = `
-        <span class="avatar" style="background-color: ${avatarColor};"></span>
-        <strong>${DOMPurify.sanitize(msg.name || "Anonim")}:</strong> ${DOMPurify.sanitize(msg.text)}
-        <div class="timestamp">${new Date(msg.timestamp).toLocaleTimeString()}</div>
-        ${msg.uid === userId ? `<button class="deleteBtn" onclick="deleteMessage('${snapshot.key}')">X</button>` : ""}
-      `;
-      div.onclick = (event) => {
-        if (event.target !== div.querySelector(".deleteBtn")) {
-          navigator.clipboard.writeText(msg.text);
-          document.getElementById("status").textContent = "Mesaj kopyalandı!";
-          setTimeout(() => {
-            document.getElementById("status").textContent = `Hoş geldin, ${username}!`;
-          }, 2000);
-        }
-      };
-      document.getElementById("messages").appendChild(div);
-      div.scrollIntoView({ behavior: "smooth" });
-      // Bildirim gönder
-      if (Notification.permission === "granted" && msg.uid !== userId) {
-        new Notification("Yeni Mesaj!", { body: `${msg.name}: ${msg.text}` });
-      }
-    }, error => {
-      document.getElementById("status").textContent = `Mesajlar yüklenemedi: ${error.message}`;
-      console.error("Mesaj dinleme hatası:", error);
+    // Mesajları dinleme
+    onChildAdded(ref(db, "messages"), (data) => {
+      const message = data.val();
+      const p = document.createElement("p");
+      p.className = "message";
+      p.textContent = message.text;
+      messagesDiv.appendChild(p);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
     });
-
-    // Mesaj sil
-    function deleteMessage(messageId) {
-      messagesRef.child(messageId).remove().then(() => {
-        document.getElementById("status").textContent = "Mesaj silindi!";
-        console.log("Mesaj silindi:", messageId);
-        setTimeout(() => {
-          document.getElementById("status").textContent = `Hoş geldin, ${username}!`;
-        }, 2000);
-      }).catch(error => {
-        document.getElementById("status").textContent = `Mesaj silinemedi: ${error.message}`;
-        console.error("Mesaj silme hatası:", error);
-      });
-    }
-
-    // Çevrimiçi kullanıcıları dinle
-    usersRef.on("value", snapshot => {
-      const users = snapshot.val();
-      console.log("Kullanıcı listesi alındı:", users);
-      const userListContent = document.getElementById("userListContent");
-      userListContent.innerHTML = "";
-      if (users) {
-        Object.values(users).forEach(user => {
-          const userDiv = document.createElement("div");
-          userDiv.className = "user";
-          const avatarColor = getRandomColor(user.name);
-          userDiv.innerHTML = `
-            <span class="avatar" style="background-color: ${avatarColor};"></span>
-            ${DOMPurify.sanitize(user.name)}
-            ${user.isTyping ? '<span class="typing">(yazıyor...)</span>' : ''}
-          `;
-          userListContent.appendChild(userDiv);
-        });
-      } else {
-        userListContent.innerHTML = "<div>Çevrimiçi kullanıcı yok.</div>";
-      }
-    }, error => {
-      document.getElementById("status").textContent = `Kullanıcı listesi yüklenemedi: ${error.message}`;
-      console.error("Kullanıcı listesi hatası:", error);
-    });
-
-    // Çevrimiçi durumu dinle
-    db.ref(".info/connected").on("value", snapshot => {
-      if (snapshot.val()) {
-        document.getElementById("status").textContent = username ? `Hoş geldin, ${username}!` : "Lütfen bir kullanıcı adı gir.";
-        console.log("Çevrimiçi bağlantı sağlandı.");
-      } else {
-        document.getElementById("status").textContent = "Çevrimdışı. Bağlantı sağlanıyor...";
-        console.log("Çevrimdışı durum.");
-      }
-    }, error => {
-      document.getElementById("status").textContent = `Bağlantı durumu alınamadı: ${error.message}`;
-      console.error("Bağlantı durumu hatası:", error);
-    });
-
-    // Eski mesajları temizle
-    function cleanOldMessages() {
-      messagesRef.orderByChild("timestamp").endAt(Date.now() - 24 * 60 * 60 * 1000).once("value", snapshot => {
-        snapshot.forEach(child => {
-          child.ref.remove();
-        });
-      });
-    }
-    setInterval(cleanOldMessages, 60 * 60 * 1000); // Her saat temizle
   </script>
 </body>
 </html>
