@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chat Uygulaması</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    #chat {
+      width: 100%;
+      max-width: 500px;
+      background: white;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      border-radius: 10px;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+    }
+    #usernameContainer {
+      margin-bottom: 10px;
+    }
+    #usernameInput {
+      width: 100%;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      margin-bottom: 10px;
+    }
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      max-height: 300px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      margin-bottom: 10px;
+      background: #fafafa;
+    }
+    .msg {
+      margin-bottom: 8px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      max-width: 80%;
+      clear: both;
+    }
+    .own {
+      background-color: #dcf8c6;
+      margin-left: auto;
+      text-align: right;
+    }
+    .other {
+      background-color: #e5e5ea;
+      margin-right: auto;
+      text-align: left;
+    }
+    .timestamp {
+      font-size: 0.8em;
+      color: #666;
+      margin-top: 4px;
+    }
+    #messageInput {
+      width: 70%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    #sendBtn {
+      width: 28%;
+      padding: 10px;
+      border: none;
+      background: #007bff;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #sendBtn:hover {
+      background: #0056b3;
+    }
+    #inputContainer {
+      display: flex;
+      gap: 2%;
+    }
+  </style>
+</head>
+<body>
+  <div id="chat">
+    <h2 style="text-align:center">📱 Sohbet Odası</h2>
+    <div id="usernameContainer">
+      <input type="text" id="usernameInput" placeholder="Kullanıcı adını gir..." />
+    </div>
+    <div id="messages"></div>
+    <div id="inputContainer">
+      <input type="text" id="messageInput" placeholder="Mesaj yaz..." />
+      <button id="sendBtn" onclick="sendMessage()">Gönder</button>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+
+  <script>
+    // 🔧 Firebase yapılandırmanı buraya yapıştır:
+    const firebaseConfig = {
+      apiKey: "SENIN_API_KEY",
+      authDomain: "SENIN_PROJE.firebaseapp.com",
+      databaseURL: "https://SENIN_PROJE.firebaseio.com",
+      projectId: "SENIN_PROJE",
+      storageBucket: "SENIN_PROJE.appspot.com",
+      messagingSenderId: "XXXXXXXX",
+      appId: "APP_ID"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const messagesRef = db.ref("messages");
+
+    let userId = "";
+    let username = "";
+
+    // Giriş
+    firebase.auth().signInAnonymously()
+      .then(user => {
+        userId = user.user.uid;
+      })
+      .catch(error => {
+        alert("Giriş hatası: " + error.message);
+      });
+
+    // Mesaj gönder
+    function sendMessage() {
+      const input = document.getElementById("messageInput");
+      const nameInput = document.getElementById("usernameInput");
+      const text = input.value.trim();
+      const name = nameInput.value.trim();
+
+      if (!name) {
+        alert("Lütfen bir kullanıcı adı gir.");
+        return;
+      }
+
+      if (text === "") return;
+
+      username = name;
+
+      const msg = {
+        user: userId,
+        name: username,
+        text: text,
+        timestamp: Date.now()
+      };
+
+      messagesRef.push(msg);
+      input.value = "";
+    }
+
+    // Mesajları dinle
+    messagesRef.orderByChild("timestamp").on("child_added", snapshot => {
+      const msg = snapshot.val();
+      const div = document.createElement("div");
+      div.className = "msg " + (msg.user === userId ? "own" : "other");
+      div.innerHTML = `<strong>${msg.name || "Anonim"}:</strong> ${msg.text}<div class="timestamp">${new Date(msg.timestamp).toLocaleTimeString()}</div>`;
+      document.getElementById("messages").appendChild(div);
+      div.scrollIntoView({ behavior: 'smooth' });
+    });
+  </script>
+</body>
+</html>
