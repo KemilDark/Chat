@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Firebase Chat</title>
+  <style>
+    body { font-family: sans-serif; background: #f5f5f5; padding: 20px; }
+    #chat { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+    #messages { max-height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }
+    .msg { padding: 5px; border-bottom: 1px solid #eee; }
+    .msg span { font-size: 0.9em; color: #666; }
+    input, button { padding: 10px; font-size: 1em; width: 80%; margin-right: 5px; }
+  </style>
+</head>
+<body>
+  <div id="chat">
+    <h2>Firebase Chat</h2>
+    <div id="messages"></div>
+    <input type="text" id="messageInput" placeholder="Mesaj yaz..." />
+    <button onclick="sendMessage()">Gönder</button>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+
+  <script>
+    // 🔧 Firebase ayarlarını buraya yapıştır
+    const firebaseConfig = {
+       apiKey: "AIzaSyBOf2SyzU_ImGw9_3c6xDYRZtJqOA8is1o",
+  authDomain: "chat-61717.firebaseapp.com",
+  databaseURL: "https://chat-61717-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "chat-61717",
+  storageBucket: "chat-61717.firebasestorage.app",
+  messagingSenderId: "520939803619",
+  appId: "1:520939803619:web:c6e68b3a5847e55b5a06d6",
+  measurementId: "G-MZHQ042SG8"
+    };
+
+    // Firebase başlat
+    firebase.initializeApp(firebaseConfig);
+
+    const db = firebase.database();
+    const messagesRef = db.ref("messages");
+    let userId = "";
+
+    // Anonim giriş yap
+    firebase.auth().signInAnonymously()
+      .then(user => {
+        userId = user.user.uid;
+      })
+      .catch(error => {
+        alert("Giriş başarısız: " + error.message);
+      });
+
+    // Mesaj gönder
+    function sendMessage() {
+      const input = document.getElementById("messageInput");
+      const text = input.value.trim();
+      if (text === "") return;
+
+      const msg = {
+        user: userId,
+        text: text,
+        timestamp: Date.now()
+      };
+
+      messagesRef.push(msg);
+      input.value = "";
+    }
+
+    // Mesajları dinle
+    messagesRef.orderByChild("timestamp").on("child_added", snapshot => {
+      const msg = snapshot.val();
+      const div = document.createElement("div");
+      div.className = "msg";
+      div.innerHTML = `<strong>${msg.user === userId ? "Ben" : "Anonim"}:</strong> ${msg.text} <br><span>${new Date(msg.timestamp).toLocaleTimeString()}</span>`;
+      document.getElementById("messages").appendChild(div);
+      div.scrollIntoView();
+    });
+  </script>
+</body>
+</html>
