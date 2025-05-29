@@ -97,7 +97,7 @@
       background: #ff4d4f;
       color: white;
       border: none;
-      border-radius: 50%;
+      border-radius: 50 voto;
       width: 20px;
       height: 20px;
       cursor: pointer;
@@ -220,19 +220,19 @@
   <script>
     // Firebase yapılandırması (Kendi bilgilerinizi ekleyin)
     const firebaseConfig = {
-      apiKey: "AIzaSyBOf2SyzU_ImGw9_3c6xDYRZtJqOA8is1o",
-  authDomain: "chat-61717.firebaseapp.com",
-  databaseURL: "https://chat-61717-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "chat-61717",
-  storageBucket: "chat-61717.firebasestorage.app",
-  messagingSenderId: "520939803619",
-  appId: "1:520939803619:web:c6e68b3a5847e55b5a06d6",
-  measurementId: "G-MZHQ042SG8"
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
     };
 
     try {
       firebase.initializeApp(firebaseConfig);
       document.getElementById("status").textContent = "Firebase başlatıldı.";
+      console.log("Firebase başlatıldı.");
     } catch (error) {
       document.getElementById("status").textContent = `Firebase başlatılamadı: ${error.message}`;
       console.error("Firebase başlatma hatası:", error);
@@ -379,12 +379,14 @@
         <div class="timestamp">${new Date(msg.timestamp).toLocaleTimeString()}</div>
         ${msg.user === userId ? `<button class="deleteBtn" onclick="deleteMessage('${snapshot.key}')">X</button>` : ""}
       `;
-      div.onclick = () => {
-        navigator.clipboard.writeText(msg.text);
-        document.getElementById("status").textContent = "Mesaj kopyalandı!";
-        setTimeout(() => {
-          document.getElementById("status").textContent = `Hoş geldin, ${username}!`;
-        }, 2000);
+      div.onclick = (event) => {
+        if (event.target !== div.querySelector(".deleteBtn")) {
+          navigator.clipboard.writeText(msg.text);
+          document.getElementById("status").textContent = "Mesaj kopyalandı!";
+          setTimeout(() => {
+            document.getElementById("status").textContent = `Hoş geldin, ${username}!`;
+          }, 2000);
+        }
       };
       document.getElementById("messages").appendChild(div);
       div.scrollIntoView({ behavior: "smooth" });
@@ -451,7 +453,7 @@
       console.error("Bağlantı durumu hatası:", error);
     });
 
-    // Eski mesajları temizle (isteğe bağlı, performans için)
+    // Eski mesajları temizle (performans için)
     function cleanOldMessages() {
       messagesRef.orderByChild("timestamp").endAt(Date.now() - 24 * 60 * 60 * 1000).once("value", snapshot => {
         snapshot.forEach(child => {
