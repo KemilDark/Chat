@@ -97,7 +97,7 @@
       background: #ff4d4f;
       color: white;
       border: none;
-      border-radius: 50 voto;
+      border-radius: 50%;
       width: 20px;
       height: 20px;
       cursor: pointer;
@@ -185,6 +185,14 @@
     }
     #logoutBtn:hover {
       background: #cc0000;
+    }
+    @media (max-width: 480px) {
+      #chat, #loginContainer {
+        padding: 10px;
+      }
+      #messageInput, #sendBtn, #usernameInput, #loginBtn {
+        font-size: 0.9em;
+      }
     }
   </style>
 </head>
@@ -275,7 +283,7 @@
         userId = user.user.uid;
         console.log("Anonim giriş başarılı, userId:", userId);
         if (username) {
-          updateUserStatus();
+          updateUserData();
         } else {
           document.getElementById("status").textContent = "Lütfen bir kullanıcı adı gir.";
         }
@@ -286,17 +294,18 @@
       });
 
     // Kullanıcı durumunu güncelle
-    function updateUserStatus() {
+    function updateUserData() {
       const userData = {
         name: username,
+        uid: userId,
         lastActive: Date.now(),
         isTyping: isTyping
       };
       usersRef.child(userId).set(userData).then(() => {
-        console.log("Kullanıcı durumu güncellendi:", userData);
+        console.log("Kullanıcı verisi güncellendi:", userData);
       }).catch(error => {
-        document.getElementById("status").textContent = `Kullanıcı durumu güncellenemedi: ${error.message}`;
-        console.error("Kullanıcı durumu güncelleme hatası:", error);
+        document.getElementById("status").textContent = `Kullanıcı verisi güncellenemedi: ${error.message}`;
+        console.error("Kullanıcı verisi güncelleme hatası:", error);
       });
       usersRef.child(userId).onDisconnect().remove();
     }
@@ -305,7 +314,7 @@
     function updateTypingStatus() {
       const input = document.getElementById("messageInput");
       isTyping = input.value.trim() !== "";
-      updateUserStatus();
+      updateUserData();
     }
 
     // Giriş fonksiyonu
@@ -320,7 +329,7 @@
       document.getElementById("loginContainer").style.display = "none";
       document.getElementById("chat").style.display = "flex";
       document.getElementById("status").textContent = `Hoş geldin, ${username}!`;
-      updateUserStatus();
+      updateUserData();
     }
 
     // Çıkış fonksiyonu
@@ -330,6 +339,7 @@
         console.error("Çıkış hatası:", error);
       });
       username = "";
+      userId = "";
       document.getElementById("chat").style.display = "none";
       document.getElementById("loginContainer").style.display = "flex";
       document.getElementById("usernameInput").value = "";
@@ -341,15 +351,16 @@
       const input = document.getElementById("messageInput");
       const text = DOMPurify.sanitize(input.value.trim());
 
-      if (!username) {
-        document.getElementById("status").textContent = "Lütfen önce bir kullanıcı adı gir.";
+      if (!username || !userId) {
+        document.getElementById("status").textContent = "Lütfen önce giriş yap.";
         return;
       }
 
       if (text === "") return;
 
       const msg = {
-        user: userId,
+        user: username, // Eski kodlarla uyumluluk için
+        uid: userId,
         name: username,
         text: text,
         timestamp: Date.now()
@@ -358,7 +369,7 @@
       messagesRef.push(msg).then(() => {
         input.value = "";
         isTyping = false;
-        updateUserStatus();
+        updateUserData();
         document.getElementById("status").textContent = `Mesaj gönderildi! Hoş geldin, ${username}!`;
         console.log("Mesaj gönderildi:", msg);
       }).catch(error => {
@@ -372,13 +383,13 @@
       const msg = snapshot.val();
       console.log("Yeni mesaj alındı:", msg);
       const div = document.createElement("div");
-      div.className = "msg " + (msg.user === userId ? "own" : "other");
+      div.className = "msg " + (msg.uid === userId ? "own" : "other");
       const avatarColor = getRandomColor(msg.name || "Anonim");
       div.innerHTML = `
         <span class="avatar" style="background-color: ${avatarColor};"></span>
         <strong>${DOMPurify.sanitize(msg.name || "Anonim")}:</strong> ${DOMPurify.sanitize(msg.text)}
         <div class="timestamp">${new Date(msg.timestamp).toLocaleTimeString()}</div>
-        ${msg.user === userId ? `<button class="deleteBtn" onclick="deleteMessage('${snapshot.key}')">X</button>` : ""}
+        ${msg.uid === userId ? `<button class="deleteBtn" onclick="deleteMessage('${snapshot.key}')">X</button>` : ""}
       `;
       div.onclick = (event) => {
         if (event.target !== div.querySelector(".deleteBtn")) {
@@ -392,7 +403,7 @@
       document.getElementById("messages").appendChild(div);
       div.scrollIntoView({ behavior: "smooth" });
       // Bildirim gönder
-      if (Notification.permission === "granted" && msg.user !== userId) {
+      if (Notification.permission === "granted" && msg.uid !== userId) {
         new Notification("Yeni Mesaj!", { body: `${msg.name}: ${msg.text}` });
       }
     }, error => {
@@ -454,7 +465,7 @@
       console.error("Bağlantı durumu hatası:", error);
     });
 
-    // Eski mesajları temizle (performans için)
+    // Eski mesajları temizle
     function cleanOldMessages() {
       messagesRef.orderByChild("timestamp").endAt(Date.now() - 24 * 60 * 60 * 1000).once("value", snapshot => {
         snapshot.forEach(child => {
@@ -462,7 +473,7 @@
         });
       });
     }
-    setInterval(cleanOldMessages, 60 * 60 * 1000); // Her saat eski mesajları temizle
+    setInterval(cleanOldMessages, 60 * 60 * 1000); // Her saat temizle
   </script>
 </body>
 </html>
