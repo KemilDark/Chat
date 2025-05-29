@@ -26,6 +26,7 @@
     }
     #usernameContainer {
       margin-bottom: 10px;
+      display: none; /* Kullanıcı adı girildikten sonra gizlenir */
     }
     #usernameInput {
       width: 100%;
@@ -37,7 +38,7 @@
     #messages {
       flex: 1;
       overflow-y: auto;
-      max-height: 300px;
+      max-height: 400px; /* Daha fazla mesaj için artırıldı */
       padding: 10px;
       border: 1px solid #ddd;
       border-radius: 5px;
@@ -46,10 +47,11 @@
     }
     .msg {
       margin-bottom: 8px;
-      padding: 6px 10px;
+      padding: 8px 12px;
       border-radius: 8px;
       max-width: 80%;
       clear: both;
+      word-wrap: break-word;
     }
     .own {
       background-color: #dcf8c6;
@@ -88,17 +90,25 @@
       display: flex;
       gap: 2%;
     }
+    #status {
+      font-size: 0.9em;
+      color: #555;
+      text-align: center;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
   <div id="chat">
     <h2 style="text-align:center">📱 Sohbet Odası</h2>
+    <div id="status"></div>
     <div id="usernameContainer">
       <input type="text" id="usernameInput" placeholder="Kullanıcı adını gir..." />
+      <button onclick="saveUsername()">Kaydet</button>
     </div>
     <div id="messages"></div>
     <div id="inputContainer">
-      <input type="text" id="messageInput" placeholder="Mesaj yaz..." />
+      <input type="text" id="messageInput" placeholder="Mesaj yaz..." onkeypress="if(event.key === 'Enter') sendMessage()" />
       <button id="sendBtn" onclick="sendMessage()">Gönder</button>
     </div>
   </div>
@@ -107,9 +117,11 @@
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+  <!-- DOMPurify for XSS protection -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.0/purify.min.js"></script>
 
   <script>
-    // 🔧 Firebase yapılandırmanı buraya yapıştır:
+    // Firebase yapılandırması
     const firebaseConfig = {
       apiKey: "SENIN_API_KEY",
       authDomain: "SENIN_PROJE.firebaseapp.com",
@@ -125,32 +137,48 @@
     const messagesRef = db.ref("messages");
 
     let userId = "";
-    let username = "";
+    let username = localStorage.getItem("username") || "";
 
-    // Giriş
+    // Kullanıcı adı kontrolü ve arayüz güncelleme
+    if (username) {
+      document.getElementById("usernameContainer").style.display = "none";
+      document.getElementById("status").textContent = `Hoş geldin, ${username}!`;
+    }
+
+    // Anonim giriş
     firebase.auth().signInAnonymously()
       .then(user => {
         userId = user.user.uid;
+        document.getElementById("status").textContent = username ? `Hoş geldin, ${username}!` : "Kullanıcı adı seçiniz.";
       })
       .catch(error => {
-        alert("Giriş hatası: " + error.message);
+        document.getElementById("status").textContent = "Bağlantı hatası: " + error.message;
       });
+
+    // Kullanıcı adını kaydet
+    function saveUsername() {
+      const nameInput = document.getElementById("usernameInput");
+      username = DOMPurify.sanitize(nameInput.value.trim());
+      if (!username) {
+        alert("Lütfen bir kullanıcı adı gir.");
+        return;
+      }
+      localStorage.setItem("username", username);
+      document.getElementById("usernameContainer").style.display = "none";
+      document.getElementById("status").textContent = `Hoş geldin, ${username}!`;
+    }
 
     // Mesaj gönder
     function sendMessage() {
       const input = document.getElementById("messageInput");
-      const nameInput = document.getElementById("usernameInput");
-      const text = input.value.trim();
-      const name = nameInput.value.trim();
+      const text = DOMPurify.sanitize(input.value.trim());
 
-      if (!name) {
-        alert("Lütfen bir kullanıcı adı gir.");
+      if (!username) {
+        alert("Lütfen önce bir kullanıcı adı gir.");
         return;
       }
 
       if (text === "") return;
-
-      username = name;
 
       const msg = {
         user: userId,
@@ -159,18 +187,30 @@
         timestamp: Date.now()
       };
 
-      messagesRef.push(msg);
-      input.value = "";
+      messagesRef.push(msg).then(() => {
+        input.value = "";
+      }).catch(error => {
+        document.getElementById("status").textContent = "Mesaj gönderilemedi: " + error.message;
+      });
     }
 
-    // Mesajları dinle
-    messagesRef.orderByChild("timestamp").on("child_added", snapshot => {
+    // Mesajları dinle (son 50 mesaj)
+    messagesRef.orderByChild("timestamp").limitToLast(50).on("child_added", snapshot => {
       const msg = snapshot.val();
       const div = document.createElement("div");
       div.className = "msg " + (msg.user === userId ? "own" : "other");
-      div.innerHTML = `<strong>${msg.name || "Anonim"}:</strong> ${msg.text}<div class="timestamp">${new Date(msg.timestamp).toLocaleTimeString()}</div>`;
+      div.innerHTML = `<strong>${DOMPurify.sanitize(msg.name || "Anonim")}:</strong> ${DOMPurify.sanitize(msg.text)}<div class="timestamp">${new Date(msg.timestamp).toLocaleTimeString()}</div>`;
       document.getElementById("messages").appendChild(div);
       div.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    // Çevrimiçi durumu dinle
+    db.ref(".info/connected").on("value", snapshot => {
+      if (snapshot.val()) {
+        document.getElementById("status").textContent = username ? `Hoş geldin, ${username}!` : "Kullanıcı adı seçiniz.";
+      } else {
+        document.getElementById("status").textContent = "Çevrimdışı. Bağlantı sağlanıyor...";
+      }
     });
   </script>
 </body>
