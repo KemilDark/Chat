@@ -220,21 +220,21 @@
   <script>
     // Firebase yapılandırması (Kendi bilgilerinizi ekleyin)
     const firebaseConfig = {
-      apiKey: "AIzaSyBOf2SyzU_ImGw9_3c6xDYRZtJqOA8is1o",
-  authDomain: "chat-61717.firebaseapp.com",
-  databaseURL: "https://chat-61717-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "chat-61717",
-  storageBucket: "chat-61717.firebasestorage.app",
-  messagingSenderId: "520939803619",
-  appId: "1:520939803619:web:c6e68b3a5847e55b5a06d6",
-  measurementId: "G-MZHQ042SG8"
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
     };
 
     try {
       firebase.initializeApp(firebaseConfig);
+      document.getElementById("status").textContent = "Firebase başlatıldı.";
     } catch (error) {
       document.getElementById("status").textContent = `Firebase başlatılamadı: ${error.message}`;
-      console.error(error);
+      console.error("Firebase başlatma hatası:", error);
     }
 
     const db = firebase.database();
@@ -271,6 +271,7 @@
     firebase.auth().signInAnonymously()
       .then(user => {
         userId = user.user.uid;
+        console.log("Anonim giriş başarılı, userId:", userId);
         if (username) {
           updateUserStatus();
         } else {
@@ -279,18 +280,21 @@
       })
       .catch(error => {
         document.getElementById("status").textContent = `Bağlantı hatası: ${error.message}`;
-        console.error(error);
+        console.error("Anonim giriş hatası:", error);
       });
 
     // Kullanıcı durumunu güncelle
     function updateUserStatus() {
-      usersRef.child(userId).set({
+      const userData = {
         name: username,
         lastActive: Date.now(),
         isTyping: isTyping
+      };
+      usersRef.child(userId).set(userData).then(() => {
+        console.log("Kullanıcı durumu güncellendi:", userData);
       }).catch(error => {
         document.getElementById("status").textContent = `Kullanıcı durumu güncellenemedi: ${error.message}`;
-        console.error(error);
+        console.error("Kullanıcı durumu güncelleme hatası:", error);
       });
       usersRef.child(userId).onDisconnect().remove();
     }
@@ -320,7 +324,9 @@
     // Çıkış fonksiyonu
     function logout() {
       localStorage.removeItem("username");
-      usersRef.child(userId).remove();
+      usersRef.child(userId).remove().catch(error => {
+        console.error("Çıkış hatası:", error);
+      });
       username = "";
       document.getElementById("chat").style.display = "none";
       document.getElementById("loginContainer").style.display = "flex";
@@ -351,16 +357,18 @@
         input.value = "";
         isTyping = false;
         updateUserStatus();
-        document.getElementById("status").textContent = `Hoş geldin, ${username}!`;
+        document.getElementById("status").textContent = `Mesaj gönderildi! Hoş geldin, ${username}!`;
+        console.log("Mesaj gönderildi:", msg);
       }).catch(error => {
         document.getElementById("status").textContent = `Mesaj gönderilemedi: ${error.message}`;
-        console.error(error);
+        console.error("Mesaj gönderme hatası:", error);
       });
     }
 
     // Mesajları dinle (son 100 mesaj)
     messagesRef.orderByChild("timestamp").limitToLast(100).on("child_added", snapshot => {
       const msg = snapshot.val();
+      console.log("Yeni mesaj alındı:", msg);
       const div = document.createElement("div");
       div.className = "msg " + (msg.user === userId ? "own" : "other");
       const avatarColor = getRandomColor(msg.name || "Anonim");
@@ -385,20 +393,27 @@
       }
     }, error => {
       document.getElementById("status").textContent = `Mesajlar yüklenemedi: ${error.message}`;
-      console.error(error);
+      console.error("Mesaj dinleme hatası:", error);
     });
 
     // Mesaj sil
     function deleteMessage(messageId) {
-      messagesRef.child(messageId).remove().catch(error => {
+      messagesRef.child(messageId).remove().then(() => {
+        document.getElementById("status").textContent = "Mesaj silindi!";
+        console.log("Mesaj silindi:", messageId);
+        setTimeout(() => {
+          document.getElementById("status").textContent = `Hoş geldin, ${username}!`;
+        }, 2000);
+      }).catch(error => {
         document.getElementById("status").textContent = `Mesaj silinemedi: ${error.message}`;
-        console.error(error);
+        console.error("Mesaj silme hatası:", error);
       });
     }
 
     // Çevrimiçi kullanıcıları dinle
     usersRef.on("value", snapshot => {
       const users = snapshot.val();
+      console.log("Kullanıcı listesi alındı:", users);
       const userListContent = document.getElementById("userListContent");
       userListContent.innerHTML = "";
       if (users) {
@@ -413,23 +428,37 @@
           `;
           userListContent.appendChild(userDiv);
         });
+      } else {
+        userListContent.innerHTML = "<div>Çevrimiçi kullanıcı yok.</div>";
       }
     }, error => {
       document.getElementById("status").textContent = `Kullanıcı listesi yüklenemedi: ${error.message}`;
-      console.error(error);
+      console.error("Kullanıcı listesi hatası:", error);
     });
 
     // Çevrimiçi durumu dinle
     db.ref(".info/connected").on("value", snapshot => {
       if (snapshot.val()) {
         document.getElementById("status").textContent = username ? `Hoş geldin, ${username}!` : "Lütfen bir kullanıcı adı gir.";
+        console.log("Çevrimiçi bağlantı sağlandı.");
       } else {
         document.getElementById("status").textContent = "Çevrimdışı. Bağlantı sağlanıyor...";
+        console.log("Çevrimdışı durum.");
       }
     }, error => {
       document.getElementById("status").textContent = `Bağlantı durumu alınamadı: ${error.message}`;
-      console.error(error);
+      console.error("Bağlantı durumu hatası:", error);
     });
+
+    // Eski mesajları temizle (isteğe bağlı, performans için)
+    function cleanOldMessages() {
+      messagesRef.orderByChild("timestamp").endAt(Date.now() - 24 * 60 * 60 * 1000).once("value", snapshot => {
+        snapshot.forEach(child => {
+          child.ref.remove();
+        });
+      });
+    }
+    setInterval(cleanOldMessages, 60 * 60 * 1000); // Her saat eski mesajları temizle
   </script>
 </body>
 </html>
